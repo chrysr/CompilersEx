@@ -1,0 +1,100 @@
+/* Simple +/-/* expression language; parser evaluates constant expressions on the fly*/
+/**
+ *  Package and Import Specifications
+ */
+import java_cup.runtime.*;
+
+/**
+ *  Usercode Components
+ */
+parser code {:
+    // Connect this parser to a scanner!
+    Scanner s;
+    Parser(Scanner s){ this.s=s; }
+    int flag=1;
+:}
+
+/* define how to connect to the scanner! */
+scan with {: return s.next_token(); :};
+
+/**
+ *  Symbol Lists
+ */
+
+/* Terminals (tokens returned by the scanner). */
+
+terminal    String        IF, ELSE, PLUS, LPAR, RPAR, LBRA, RBRA, COMMA, PREF, SUF, ID, STRING;
+
+/*  Non terminals */
+non terminal String program,subprograms,subprogram,func,function,decider,declaration,arguments,arg1,arguments2,term,statement,concat,ifstmt,elsestmnt,ifexpr,op;
+
+/**
+ *  The Grammar Rules
+ */
+start with program;
+
+
+
+
+program         ::= subprograms
+;
+subprograms     ::= subprogram subprograms
+                | 
+;
+subprogram      ::= function:f                  {:if(f.contains("{")&&f.contains("}"))
+                                                { 
+                                                    String str=f.split("\\(")[1].split("\\)")[0];
+                                                    if(str.contains(":")||str.contains("?")||str.contains("+")||str.contains("startsWith")||str.contains("endsWith"))
+                                                        throw new Exception("Parse Error");                                                    
+                                                    else System.out.println("\tpublic static String "+f);
+                                                } 
+                                                else
+                                                {
+                                                    if(flag==1)                                                    
+                                                        System.out.println("\tpublic static void main(String[] argv)\n\t{");flag=0;
+                                                                                                            
+                                                    f=f.replace("String ",""); System.out.println("\t\tSystem.out.println("+f+");");
+                                                }
+                                                    :}
+;
+func            ::= ID:f LPAR                   {:RESULT=f+"(";:}
+;
+function        ::= func:f arguments:a RPAR decider:d       {:RESULT=f+a+")"+d;:}
+;
+decider         ::= declaration:d               {:RESULT=d;:}
+                |                               {:RESULT="";:} 
+;
+declaration     ::= LBRA statement:s RBRA       {:RESULT="\n\t{\n\t\treturn "+s+"\n\t}";:}
+;
+arguments       ::= arg1:a arguments2:a2        {: if(a==null) RESULT=""; else RESULT=a+a2; :}  
+;
+arg1            ::= term:t concat:c             {:RESULT="String "+t+c;:}
+                |   PLUS term:t concat:c        {:RESULT="+"+t+c;:}
+                |   ifstmt:f                    {:RESULT=f;:}    
+                |   function:f                  {:RESULT=f;:}
+                |                               {:RESULT="";:}
+;
+arguments2      ::= COMMA arg1:a arguments2:a2  {: RESULT=","+a+a2;:}
+                |                               {:RESULT="";:}
+;
+term            ::= ID:id                       {:RESULT=id;:} 
+                |   STRING:s                    {:RESULT=s;:}
+;
+statement       ::= concat:c                    {:RESULT=c+";";:}
+;
+concat          ::= term:t concat:c             {:RESULT=t+c;:}
+                |   PLUS term:t concat:c        {:RESULT="+"+t+c;:}
+                |   ifstmt:f                    {:RESULT=f;:}    
+                |   function:f                  {:RESULT=f;:}
+                |                               {:RESULT="";:}
+;
+ifstmt          ::= IF LPAR ifexpr:ex RPAR statement:s elsestmnt:e      {:s=s.replace("String ","");e=e.replace("String ","");s=s.replace(";","");e=e.replace(";","");RESULT=ex +" ? ("+s+") : ("+e+")";:}
+;
+elsestmnt       ::= ELSE statement:s            {:RESULT=s;:}
+;
+ifexpr          ::= term:t1 op:o term:t2        {:RESULT=t2+o+t1+")";:}
+;
+op              ::= SUF                         {:RESULT=".endsWith(";:}
+                |   PREF                        {:RESULT=".startsWith(";:}
+;
+

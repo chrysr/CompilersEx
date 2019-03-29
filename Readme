@@ -1,0 +1,12 @@
+Part1:
+    Compile: make
+    Execute: make execute (A prompt should appear for you to type an expression in)
+    Clean  : make clean
+
+
+Part2:
+    Compile: make
+    Execute: make execute < sampleinput
+             make execute < sampleinput > Output.java
+    *Java code produced under class name Output*
+    Clean  : make clean
